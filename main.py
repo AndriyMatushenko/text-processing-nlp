@@ -8,21 +8,19 @@ from sentence_transformers import SentenceTransformer
 import faiss
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-#Ініціалізація моделей
+# Ініціалізація моделей
 nlp = spacy.load('uk_core_news_sm')
 bert_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
 generator = pipeline('text2text-generation', model='facebook/bart-large-cnn')
 
-
-#Попередня обробка тексту
+# Попередня обробка тексту
 def preprocess_text_spacy(text):
     text = text.lower()
     text = re.sub(r'\d+', '', text)
     doc = nlp(text)
     return ' '.join([token.lemma_ for token in doc if not token.is_stop and not token.is_punct and token.is_alpha])
 
-
-#Клас для пошуку
+# Клас для пошуку
 class TextRetriever:
     def __init__(self, corpus):
         self.original_corpus = corpus
@@ -51,8 +49,7 @@ class TextRetriever:
         combined = list({doc: None for doc in bm25_docs + faiss_docs}.keys())[:top_n]
         return [self.original_corpus[self.processed_corpus.index(doc)] for doc in combined]
 
-
-#Генератор відповідей
+# Генератор відповідей
 class ResponseGenerator:
     def generate_response(self, query, retrieved_docs):
         context = ' '.join(retrieved_docs)
@@ -60,8 +57,7 @@ class ResponseGenerator:
         result = generator(prompt, max_length=150, num_beams=4, early_stopping=True)
         return result[0]['generated_text'].replace('Відповідь:', '').strip()
 
-
-#Ініціалізація системи
+# Ініціалізація системи
 corpus = [
     "Машинне навчання використовує алгоритми для аналізу та прогнозування даних.",
     "Штучний інтелект має широкий спектр застосувань у науці та техніці.",
@@ -73,14 +69,12 @@ corpus = [
 retriever = TextRetriever(corpus)
 response_generator = ResponseGenerator()
 
-
-
 def process_query(query):
     retrieved_docs = retriever.search(query, top_n=3)
     response = response_generator.generate_response(query, retrieved_docs)
     return response, "\n\n".join(f"📄 {doc}" for doc in retrieved_docs)
 
-
+# Створення інтерфейсу Gradio
 with gr.Blocks(theme=gr.themes.Soft(), title="Привіт!") as demo:
     gr.Markdown("# 🦉 Інформаційна Технологія Обробки Неструктурованих Текстів")
     gr.Markdown("Система для пошуку та аналізу інформації")
